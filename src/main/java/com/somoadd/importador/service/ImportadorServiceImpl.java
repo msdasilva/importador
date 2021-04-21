@@ -5,13 +5,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
+import com.somoadd.importador.entity.DataSet;
+import com.somoadd.importador.entity.EntityDatasource;
+import com.somoadd.importador.entity.Hierarchy;
+import com.somoadd.importador.respository.*;
+import net.bytebuddy.implementation.bind.MethodDelegationBinder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.somoadd.importador.entity.EntityDs;
 import com.somoadd.importador.model.Importador;
-import com.somoadd.importador.respository.ImportadorRespository;
-
 import jxl.Cell;
 import jxl.Sheet;
 import jxl.Workbook;
@@ -20,50 +25,94 @@ import jxl.read.biff.BiffException;
 @Service
 public class ImportadorServiceImpl implements ImportadorService {
 
-	@Autowired
-	private ImportadorRespository importadorRespository;
+    @Autowired
+    private ImportadorRespository importadorRespository;
 
-	@Override
-	public void loadImportador(String arquivoPathString) {
+    @Autowired
+    private DatasetRepository _datasetRepository;
 
-		System.out.println("arquivoPathString: " + arquivoPathString);
+    @Autowired
+    private HierarchyRepository _hierarchyRepository;
 
-		Path path = Paths.get(arquivoPathString);
-		String diretorioDoArquivo = path.toAbsolutePath().toString();
+    @Autowired
+    private DatasourceRepository _datasourceRepository;
 
-		if (Files.exists(path)) {
-			Workbook workbook = null;
-			try {
-				workbook = Workbook.getWorkbook(new File(diretorioDoArquivo + "/teste-xls.xls"));
-			} catch (BiffException | IOException e) {
-				e.printStackTrace();
-			}
+    @Autowired
+    private EntityRepository _entityRepository;
 
-			Sheet sheet = workbook.getSheet(0);
-			int linhas = sheet.getRows();
-			for (int i = 1; i < linhas; i++) {
-				Cell a1 = sheet.getCell(0, i);
+    @Override
+    public void loadImportador(String arquivoPathString) {
 
-				Cell a2 = sheet.getCell(1, i);
+        System.out.println("arquivoPathString: " + arquivoPathString);
 
-				Cell a3 = sheet.getCell(2, i);
+        Path path = Paths.get(arquivoPathString);
+        String diretorioDoArquivo = path.toAbsolutePath().toString();
+        Workbook workbook = null;
+        if (Files.exists(path)) {
 
-				String as1 = a1.getContents();
+            try {
+                workbook = Workbook.getWorkbook(new File(diretorioDoArquivo + "/cargaEntidadesFacebook.xls"));
+            } catch (BiffException | IOException e) {
+                e.printStackTrace();
+            }
 
-				String as2 = a2.getContents();
+            Sheet sheet = workbook.getSheet(0);
+            int linhas = sheet.getRows();
+            for (int i = 1; i < linhas; i++) {
+                Cell coluna1 = sheet.getCell(0, i);
 
-				String as3 = a3.getContents();
+                Cell coluna2 = sheet.getCell(1, i);
 
-				Importador importador = new Importador(as1, as2, as3);
+                Cell coluna3 = sheet.getCell(2, i);
 
-				importadorRespository.save(importador);
+                String valor1 = this.cleanString(coluna1.getContents());
 
-				System.out.println(": " + as1 + " - : " + as2 + " - : " + as3);
-			}
+                String valor2 = this.cleanString(coluna2.getContents());
 
-			workbook.close();
-		}
+                String valor3 = this.cleanString(coluna3.getContents());
 
-	}
+                var dataset = _datasetRepository.findById(899L).get();
+                var datasource = _datasourceRepository.getOne(1L);
+
+                var entidade = new EntityDs();
+                var listaDataset = new ArrayList<DataSet>();
+                listaDataset.add(dataset);
+
+                var hierarquia = _hierarchyRepository.getOne(908L);
+                var listaHierarquia = new ArrayList<Hierarchy>();
+                listaHierarquia.add(hierarquia);
+
+
+                var entityDatasource = new EntityDatasource();
+                entityDatasource.setEntity(entidade);
+                entityDatasource.setDatasource(datasource);
+                entityDatasource.setValue(valor3);
+
+                var listaEntityDatasource = new ArrayList<EntityDatasource>();
+                listaEntityDatasource.add(entityDatasource);
+
+                entidade.setName(valor2);
+                entidade.setDatasetList(listaDataset);
+                entidade.setHierarchies(listaHierarquia);
+                entidade.setEntityDatasource(listaEntityDatasource);
+
+                try {
+                    //var result = _entityRepository.saveAndFlush(entidade);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+
+        workbook.close();
+    }
+
+    public String cleanString(String conteudo) {
+        int limite = 50;
+        return conteudo.replace("'", "").substring(0, conteudo.length() > limite ? limite : conteudo.length());
+    }
 
 }
+
+

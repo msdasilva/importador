@@ -14,12 +14,12 @@ public class ImportadorController {
 	@Autowired
 	private ImportadorService importadorService;
 	
-	@GetMapping(value = "/importadores/{caminho}")
-	public ResponseEntity<String> loadImportador(@PathVariable(value = "caminho") String caminho) {
+	@GetMapping(value = "/importadores")
+	public ResponseEntity<String> loadImportador() {
 		
 		try {			
 
-			caminho = "C:\\Users\\add\\Documents\\workspace-spring-tool-suite-4-4.9.0.RELEASE\\importador";
+			var caminho = "C:\\Users\\add\\Desktop\\SocialQI-dev";
 			importadorService.loadImportador(caminho);
 			
 		}catch (Exception e) {
